@@ -1,0 +1,180 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' 'unsafe-inline' https://fonts.gstatic.com; img-src 'self' data: blob: https://pfst.cf2.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com; media-src 'self' data: blob: https://pfst.cf2.poecdn.net https://i.imgur.com https://wikimedia.org; frame-src 'self' https://www.youtube.com; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bathroom Entry Tracker</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f0f4f8;
+            --text-color: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+        .button-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        button {
+            font-size: 1rem;
+            padding: 1rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        #startBtn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #startBtn:hover {
+            background-color: #3a80d2;
+        }
+        #endBtn {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        #endBtn:hover {
+            background-color: #e59613;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #status {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            min-height: 3rem;
+        }
+        #timer {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 2rem 0;
+        }
+        .animate-pop {
+            animation: pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://script.google.com; script-src 'self' 'unsafe-inline';">
+    <title>Bathroom Entry Tracker</title>
+    <!-- rest of your head content -->
+</head>
+<body>
+    <div class="container">
+        <h1>Bathroom Entry Tracker</h1>
+        <div id="timer">00:00</div>
+        <div class="button-container">
+            <button id="startBtn">Start Visit</button>
+            <button id="endBtn" disabled="">End Visit</button>
+        </div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const endBtn = document.getElementById('endBtn');
+        const status = document.getElementById('status');
+        const timer = document.getElementById('timer');
+
+        let startTime;
+        let timerInterval;
+
+        // Replace with your Google Apps Script Web App URL
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbzzzb5sUPUxlD6bhNxwgPOfCbbhEgX_n-hCfdyjN0xY9YMTmy4OBk9l3l7HWokxEbDnxg/exec';
+
+        function updateTimer() {
+            const now = new Date();
+            const diff = now - startTime;
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        startBtn.addEventListener('click', () => {
+            startTime = new Date();
+            startBtn.disabled = true;
+            endBtn.disabled = false;
+            status.textContent = 'Bathroom visit started.';
+            status.classList.add('animate-pop');
+            timer.classList.add('animate-pop');
+            timerInterval = setInterval(updateTimer, 1000);
+        });
+
+        endBtn.addEventListener('click', () => {
+            const endTime = new Date();
+            const duration = (endTime - startTime) / 1000; // Duration in seconds
+
+            clearInterval(timerInterval);
+            startBtn.disabled = false;
+            endBtn.disabled = true;
+            status.textContent = 'Logging entry...';
+            status.classList.add('animate-pop');
+
+            // Log to Google Sheets
+            fetch(scriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    startTime: startTime.toISOString(),
+                    endTime: endTime.toISOString(),
+                    duration: duration
+                })
+            }).then(() => {
+                status.textContent = `Entry logged. Duration: ${duration.toFixed(2)} seconds.`;
+                status.classList.add('animate-pop');
+                timer.textContent = '00:00';
+                timer.classList.add('animate-pop');
+            }).catch((error) => {
+                console.error('Error:', error);
+                status.textContent = 'Error logging entry.';
+                status.classList.add('animate-pop');
+            });
+        });
+
+        status.addEventListener('animationend', () => {
+            status.classList.remove('animate-pop');
+        });
+
+        timer.addEventListener('animationend', () => {
+            timer.classList.remove('animate-pop');
+        });
+    </script>
+
+
+</body></html>
